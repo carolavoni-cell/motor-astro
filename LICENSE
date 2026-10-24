@@ -1,0 +1,8 @@
+Copyright (c) 2026 Carol Avoni. Todos os direitos reservados.
+
+O código deste repositório pode ser lido, mas não pode ser copiado,
+modificado ou redistribuído sem autorização por escrito da autora.
+
+O arquivo dist/motor-astro.js inclui o astronomy-engine, de Don Cross,
+distribuído sob a licença MIT (aviso completo dentro do próprio arquivo):
+https://github.com/cosinekitty/astronomy

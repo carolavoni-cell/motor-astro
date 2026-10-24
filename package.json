@@ -1,0 +1,37 @@
+{
+  "name": "motor-astro",
+  "version": "1.0.0",
+  "description": "Motor de cálculo astrológico da Carol Avoni: posições, casas topocêntricas, aspectos, fuso e horário de verão, Lua e lunações.",
+  "license": "SEE LICENSE IN LICENSE",
+  "repository": "github:carolavoni-cell/motor-astro",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./navegador": "./dist/motor-astro.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "node gabarito/conferir.mjs",
+    "gabarito:novo": "npm run build && node scripts/novo-gabarito.mjs",
+    "pronto": "npm run build && npm test"
+  },
+  "dependencies": {
+    "astronomy-engine": "2.1.19"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.10",
+    "typescript": "5.9.3"
+  }
+}
