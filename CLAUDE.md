@@ -7,6 +7,9 @@ e confirme antes de passos importantes. Leia o `LEIA-ME.md` antes de mexer.
 ## Regras
 - Todo cálculo astrológico mora aqui. Nenhum projeto mantém cópia própria
   do cálculo; se encontrar uma, avise a Carol em vez de corrigir a cópia.
+- Todos os projetos usam a MESMA versão publicada, pelo número (decisão da
+  Carol, 24/11/2026). Nenhum projeto aponta para esta pasta do computador.
+  Ao publicar uma versão, trocar o número em todos os projetos da tabela.
 - Repositório PÚBLICO: nunca colocar dados de clientes, textos de leitura,
   chaves ou senhas.
 - `npm run pronto` precisa passar antes de qualquer commit.

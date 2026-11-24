@@ -13,8 +13,9 @@ aqui dados de clientes, textos de leitura ou chaves de acesso.
 
 | Projeto | Onde está a referência ao motor | Versão em uso |
 |---|---|---|
-| Portal do Acompanhamento | `portal/package.json`, linha `"motor-astro"` | v1.0.0 |
-| Mapa do dinheiro | `index.html`, linha do `<script>` do motor | v1.0.0 |
+| Portal do Acompanhamento | `portal/package.json`, linha `"motor-astro"` | v1.1.0 na pasta do projeto desde 24/11/2026; o site no ar segue na v1.0.0 até a próxima publicação do portal |
+| Mapa do dinheiro | `package.json` da raiz, linha `"motor-astro"` (o `gerador/pacote_fatos.cjs` lê o motor instalado) | v1.1.0 |
+| Planner 2027 | `package.json` da raiz, linha `"motor-astro"` (quem chama é o `cerebro/inventario.mjs`) | v1.1.0 |
 
 Quando um projeto novo passar a usar o motor, acrescente uma linha aqui.
 
