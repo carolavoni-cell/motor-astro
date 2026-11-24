@@ -16,4 +16,5 @@ export * from "./fuso";
 export * from "./mapa";
 export * from "./lua";
 export * from "./tabela";
+export * from "./previsao";
 export { ABUNDANTIA } from "./efemerides/abundantia";

@@ -28,7 +28,7 @@ let falhas = 0;
 for (const [nome, motor] of Object.entries(formas)) {
   const obtido = montarResultado(motor);
   const diferencas = [];
-  for (const parte of ["mapas", "lua", "lunacoes", "luaNasCasas", "tabela", "fusos"]) {
+  for (const parte of ["mapas", "lua", "lunacoes", "luaNasCasas", "tabela", "fusos", "previsao"]) {
     esperado[parte].forEach((item, i) => {
       const a = JSON.stringify(item);
       const b = JSON.stringify(obtido[parte][i]);
@@ -39,7 +39,7 @@ for (const [nome, motor] of Object.entries(formas)) {
     falhas++;
     console.log(`✗ ${nome}: ${diferencas.length} casos diferentes do gabarito. Primeiros: ${diferencas.slice(0, 8).join(", ")}`);
   } else {
-    console.log(`✓ ${nome}: motor ${motor.VERSAO_DO_MOTOR} igual ao gabarito em ${esperado.mapas.length} mapas e todos os demais casos.`);
+    console.log(`✓ ${nome}: motor ${motor.VERSAO_DO_MOTOR} igual ao gabarito em ${esperado.mapas.length} mapas, ${esperado.previsao.length} casos de previsão e todos os demais casos.`);
   }
 }
 

@@ -143,3 +143,15 @@ export const ESTADOS = [
   "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG", "PA",
   "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO", "",
 ];
+
+/**
+ * Casos de previsão (trânsitos, céu do dia, ingressos, estações, retorno
+ * solar, profecção e progressões): um mapa do sorteio acima e um período.
+ * Períodos curtos, para o gabarito continuar rápido.
+ */
+export function casosDePrevisao() {
+  return [
+    { mapa: "sorteado-2", de: "2027-03-01", ate: "2027-04-30" },
+    { mapa: "sorteado-4", de: "2031-09-01", ate: "2031-10-15" },
+  ];
+}

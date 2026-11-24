@@ -31,51 +31,74 @@ var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: tru
 var index_exports = {};
 __export(index_exports, {
   ABUNDANTIA: () => ABUNDANTIA,
+  ANGULOS_MAIORES: () => ANGULOS_MAIORES,
+  ANGULOS_NOS_DOIS_SENTIDOS: () => ANGULOS_NOS_DOIS_SENTIDOS,
+  ANO_TROPICO_EM_DIAS: () => ANO_TROPICO_EM_DIAS,
   ASPECTOS: () => ASPECTOS,
   CORPOS: () => CORPOS,
+  FASES_DA_LUNACAO: () => FASES_DA_LUNACAO,
   GLIFOS_DOS_PONTOS: () => GLIFOS_DOS_PONTOS,
   GLIFOS_SIGNO: () => GLIFOS_SIGNO,
   GRAUS: () => GRAUS,
   NOMES_FASE: () => NOMES_FASE,
+  REGENTES_TRADICIONAIS: () => REGENTES_TRADICIONAIS,
   SIGNOS: () => SIGNOS,
   VERSAO_DO_MAPA: () => VERSAO_DO_MAPA,
   VERSAO_DO_MOTOR: () => VERSAO_DO_MOTOR,
+  amostrasDoCeu: () => amostrasDoCeu,
   armcDoLugar: () => armcDoLugar,
+  aspectosNoCeu: () => aspectosNoCeu,
+  aspectosProgredidos: () => aspectosProgredidos,
   calcularAspectos: () => calcularAspectos,
   calcularMapa: () => calcularMapa,
   casaDoGrau: () => casaDoGrau,
+  casaPorSignosInteiros: () => casaPorSignosInteiros,
   ceuNoInstante: () => ceuNoInstante,
+  ceuProgredido: () => ceuProgredido,
   cuspidesTopocentricas: () => cuspidesTopocentricas,
   distanciaAngular: () => distanciaAngular,
   estaRetrogrado: () => estaRetrogrado,
+  estacoesDosPlanetas: () => estacoesDosPlanetas,
   faseDaLua: () => faseDaLua,
+  faseDaLunacao: () => faseDaLunacao,
+  fimDaFaseCheia: () => fimDaFaseCheia,
   fusoPadraoPorUf: () => fusoPadraoPorUf,
   fusoParaGravar: () => fusoParaGravar,
   haEclipse: () => haEclipse,
+  idadeNaData: () => idadeNaData,
   instanteDoMapa: () => instanteDoMapa,
   instanteDoNascimento: () => instanteDoNascimento,
   instanteNaZona: () => instanteNaZona,
+  instanteProgredido: () => instanteProgredido,
   lilithMedia: () => lilithMedia,
   longitudeDaLua: () => longitudeDaLua,
   longitudeDaTabela: () => longitudeDaTabela,
   longitudeEcliptica: () => longitudeEcliptica,
   luaNasCasas: () => luaNasCasas,
+  mudancasDeCasaESigno: () => mudancasDeCasaESigno,
+  mudancasDeFaseProgredida: () => mudancasDeFaseProgredida,
+  mudancasProgredidas: () => mudancasProgredidas,
   nodoNorteVerdadeiro: () => nodoNorteVerdadeiro,
   norm360: () => norm360,
   obliquidadeVerdadeira: () => obliquidadeVerdadeira,
   orbeDoPar: () => orbeDoPar,
   parteDaFortuna: () => parteDaFortuna,
   pontoDaTabela: () => pontoDaTabela,
+  pontosTocados: () => pontosTocados,
   posicaoNoSigno: () => posicaoNoSigno,
+  profeccaoAnual: () => profeccaoAnual,
   proximasLunacoes: () => proximasLunacoes,
+  refinarInstante: () => refinarInstante,
+  retornoSolar: () => retornoSolar,
   tinhaHorarioDeVerao: () => tinhaHorarioDeVerao,
+  transitosSobrePontos: () => transitosSobrePontos,
   zonaDoLocal: () => zonaDoLocal,
   zonaValida: () => zonaValida
 });
 module.exports = __toCommonJS(index_exports);
 
 // src/versao.ts
-var VERSAO_DO_MOTOR = "1.0.0";
+var VERSAO_DO_MOTOR = "1.1.0";
 
 // src/base.ts
 var SIGNOS = [
@@ -625,6 +648,370 @@ function pontoDaTabela(nome, glifo, tabela, instante, cuspides) {
     casa: casaDoGrau(lon, cuspides),
     retrogrado: avanco < 0
   };
+}
+
+// src/previsao.ts
+var DIA = 864e5;
+var HORA = 36e5;
+var SEM_LUGAR = { latitude: 0, longitude: 0 };
+var ceu = (d) => ceuNoInstante(d, SEM_LUGAR, false);
+var ANGULOS_MAIORES = [0, 60, 90, 120, 180];
+var ANGULOS_NOS_DOIS_SENTIDOS = [0, 60, 90, 120, 180, -60, -90, -120];
+var desvioAssinado = (lon, lonAlvo, angulo) => ((lon - lonAlvo - angulo) % 360 + 540) % 360 - 180;
+function refinarInstante(a, b, f, passoMs = 6e4) {
+  let ta = a.getTime();
+  let tb = b.getTime();
+  let fa = f(new Date(ta));
+  while (tb - ta > passoMs) {
+    const tm = Math.trunc((ta + tb) / 2);
+    const fm = f(new Date(tm));
+    if (fm > 0 === fa > 0) {
+      ta = tm;
+      fa = fm;
+    } else tb = tm;
+  }
+  return new Date(tb);
+}
+function amostrasDoCeu(de, ate, corpos, passoMs = DIA) {
+  const amostras = [];
+  for (let t = de.getTime(); t <= ate.getTime(); t += passoMs) {
+    const d = new Date(t);
+    const c = ceu(d);
+    amostras.push({
+      d,
+      lon: Object.fromEntries(corpos.map((n) => [n, c.longitudes.get(n)])),
+      rx: Object.fromEntries(corpos.map((n) => [n, c.retrogrados.get(n)]))
+    });
+  }
+  return amostras;
+}
+function transitosSobrePontos(opcoes) {
+  const { amostras, transitantes, alvos, janela = null } = opcoes;
+  const orbe = opcoes.orbe ?? 3;
+  const angulos = opcoes.angulos ?? ANGULOS_NOS_DOIS_SENTIDOS;
+  if (!amostras.length) return [];
+  const ultimaAmostra = amostras[amostras.length - 1].d;
+  const achados = [];
+  for (const tr of transitantes) {
+    for (const alvo of alvos) {
+      const lonAlvo = alvo.lon;
+      for (const ang of angulos) {
+        let aberto = null;
+        for (let i = 0; i < amostras.length; i++) {
+          const dv = desvioAssinado(amostras[i].lon[tr], lonAlvo, ang);
+          const dentro = Math.abs(dv) <= orbe;
+          if (dentro && !aberto) {
+            aberto = {
+              tr,
+              alvo: alvo.nome,
+              lonAlvo,
+              ang,
+              iInicio: i,
+              iFim: -1,
+              inicio: amostras[i].d,
+              fim: null,
+              minimo: Math.abs(dv),
+              minimoD: amostras[i].d,
+              exatos: [],
+              ultimoSinal: Math.sign(dv)
+            };
+          }
+          if (aberto) {
+            if (Math.abs(dv) < aberto.minimo) {
+              aberto.minimo = Math.abs(dv);
+              aberto.minimoD = amostras[i].d;
+            }
+            const s = Math.sign(dv);
+            if (i > 0 && s !== aberto.ultimoSinal && s !== 0) {
+              aberto.exatos.push(
+                refinarInstante(amostras[i - 1].d, amostras[i].d, (d) => desvioAssinado(ceu(d).longitudes.get(tr), lonAlvo, ang))
+              );
+            }
+            if (s !== 0) aberto.ultimoSinal = s;
+            if (!dentro) {
+              aberto.fim = amostras[i].d;
+              aberto.iFim = i;
+              achados.push(aberto);
+              aberto = null;
+            }
+          }
+        }
+        if (aberto) achados.push(aberto);
+      }
+    }
+  }
+  return achados.map((a) => {
+    const distancia = (d) => Math.abs(desvioAssinado(ceu(d).longitudes.get(a.tr), a.lonAlvo, a.ang));
+    let melhor = a.minimoD;
+    let menor = a.minimo;
+    for (let t = a.minimoD.getTime() - 36 * HORA; t <= a.minimoD.getTime() + 36 * HORA; t += HORA) {
+      const d = new Date(t);
+      const v = distancia(d);
+      if (v < menor) {
+        menor = v;
+        melhor = d;
+      }
+    }
+    const vemDeAntes = a.iInicio === 0;
+    const segueDepois = !a.fim;
+    const inicio = vemDeAntes ? a.inicio : refinarInstante(amostras[a.iInicio - 1].d, amostras[a.iInicio].d, (d) => distancia(d) - orbe);
+    const fim = a.fim ? refinarInstante(amostras[a.iFim - 1].d, amostras[a.iFim].d, (d) => orbe - distancia(d)) : null;
+    let minimoNaJanela = null;
+    let maisPertoNaJanela = null;
+    if (janela) {
+      const t0 = Math.max(inicio.getTime(), janela.de.getTime());
+      const t1 = Math.min((fim ?? ultimaAmostra).getTime(), janela.ate.getTime());
+      if (t0 <= t1) {
+        let m = Infinity;
+        let quando = null;
+        const testa = (d, v) => {
+          if (v < m) {
+            m = v;
+            quando = d;
+          }
+        };
+        testa(new Date(t0), distancia(new Date(t0)));
+        testa(new Date(t1), distancia(new Date(t1)));
+        for (const ex of a.exatos) if (ex.getTime() >= t0 && ex.getTime() <= t1) testa(ex, 0);
+        for (let i = a.iInicio; i < amostras.length && amostras[i].d.getTime() <= t1; i++) {
+          const t = amostras[i].d.getTime();
+          if (t >= t0) testa(amostras[i].d, distancia(amostras[i].d));
+        }
+        if (m > 0) {
+          const c = quando.getTime();
+          for (let t = Math.max(t0, c - 36 * HORA); t <= Math.min(t1, c + 36 * HORA); t += HORA) {
+            const d = new Date(t);
+            testa(d, distancia(d));
+          }
+        }
+        minimoNaJanela = m;
+        maisPertoNaJanela = quando;
+      }
+    }
+    return {
+      transitante: a.tr,
+      alvo: a.alvo,
+      angulo: a.ang,
+      aspecto: Math.abs(a.ang),
+      inicio,
+      fim,
+      vemDeAntes,
+      segueDepois,
+      exatos: a.exatos,
+      distanciaMinima: menor,
+      maisPerto: melhor,
+      distanciaMinimaNaJanela: minimoNaJanela,
+      maisPertoNaJanela
+    };
+  });
+}
+function aspectosNoCeu(opcoes) {
+  const { amostras, pares, limite, de, ate } = opcoes;
+  const angulos = opcoes.angulos ?? ANGULOS_NOS_DOIS_SENTIDOS;
+  const lista = [];
+  for (const [p1, p2] of pares) {
+    for (const ang of angulos) {
+      for (let k = 1; k < amostras.length; k++) {
+        const d0 = desvioAssinado(amostras[k - 1].lon[p1], amostras[k - 1].lon[p2], ang);
+        const d1 = desvioAssinado(amostras[k].lon[p1], amostras[k].lon[p2], ang);
+        if (Math.sign(d0) !== Math.sign(d1) && Math.abs(d0) < limite && Math.abs(d1) < limite) {
+          const quando = refinarInstante(amostras[k - 1].d, amostras[k].d, (d) => {
+            const c = ceu(d);
+            return desvioAssinado(c.longitudes.get(p1), c.longitudes.get(p2), ang);
+          });
+          if (quando >= de && quando <= ate) {
+            const c = ceu(quando);
+            lista.push({ p1, p2, angulo: ang, aspecto: Math.abs(ang), quando, lon1: c.longitudes.get(p1), lon2: c.longitudes.get(p2) });
+          }
+        }
+      }
+    }
+  }
+  return lista;
+}
+function mudancasDeCasaESigno(opcoes) {
+  const { amostras, transitantes, cuspides, de, ate } = opcoes;
+  const lista = [];
+  for (const tr of transitantes) {
+    let anterior = null;
+    for (let i = 0; i < amostras.length; i++) {
+      const casa = casaDoGrau(amostras[i].lon[tr], cuspides);
+      const signo = Math.floor(amostras[i].lon[tr] / 30);
+      if (anterior !== null && casa !== anterior.casa) {
+        const casaAntes = anterior.casa;
+        const d = refinarInstante(amostras[i - 1].d, amostras[i].d, (x) => casaDoGrau(ceu(x).longitudes.get(tr), cuspides) === casaAntes ? -1 : 1);
+        if (d >= de && d <= ate) lista.push({ tipo: "casa", transitante: tr, de: casaAntes, para: casa, quando: d, lon: ceu(d).longitudes.get(tr) });
+      }
+      if (anterior !== null && signo !== anterior.signo) {
+        const signoAntes = anterior.signo;
+        const d = refinarInstante(amostras[i - 1].d, amostras[i].d, (x) => Math.floor(ceu(x).longitudes.get(tr) / 30) === signoAntes ? -1 : 1);
+        if (d >= de && d <= ate) lista.push({ tipo: "signo", transitante: tr, indiceSigno: signo, signo: SIGNOS[signo], quando: d });
+      }
+      anterior = { casa, signo };
+    }
+  }
+  return lista;
+}
+function estacoesDosPlanetas(opcoes) {
+  const { amostras, transitantes } = opcoes;
+  const lista = [];
+  for (const tr of transitantes) {
+    for (let i = 1; i < amostras.length; i++) {
+      if (amostras[i].rx[tr] !== amostras[i - 1].rx[tr]) {
+        const antes = amostras[i - 1].rx[tr];
+        const quando = refinarInstante(amostras[i - 1].d, amostras[i].d, (d) => ceu(d).retrogrados.get(tr) === antes ? -1 : 1);
+        lista.push({ transitante: tr, sentido: amostras[i].rx[tr] ? "retr\xF3grada" : "direta", quando, lon: ceu(quando).longitudes.get(tr) });
+      }
+    }
+  }
+  return lista;
+}
+function pontosTocados(lon, alvos, angulos, orbe) {
+  const lista = [];
+  for (const alvo of alvos) {
+    for (const angulo of angulos) {
+      const distancia = Math.abs(distanciaAngular(lon, alvo.lon) - angulo);
+      if (distancia <= orbe) lista.push({ alvo: alvo.nome, angulo, distancia });
+    }
+  }
+  return lista;
+}
+function fimDaFaseCheia(luaCheia) {
+  const f = (x) => {
+    const c = ceu(x);
+    return norm360(c.longitudes.get("Lua") - c.longitudes.get("Sol")) - 225;
+  };
+  return refinarInstante(new Date(luaCheia.getTime() + 2 * DIA), new Date(luaCheia.getTime() + 5.5 * DIA), f);
+}
+function retornoSolar(lonSolNatal, perto, margemDias = 2) {
+  const f = (d) => {
+    const x = ceu(d).longitudes.get("Sol") - lonSolNatal;
+    return (x % 360 + 540) % 360 - 180;
+  };
+  return refinarInstante(new Date(perto.getTime() - margemDias * DIA), new Date(perto.getTime() + margemDias * DIA), f);
+}
+function idadeNaData(dataDeNascimento, d) {
+  const [ano, mes, dia] = dataDeNascimento.split("-").map(Number);
+  let idade = d.getUTCFullYear() - ano;
+  const m = d.getUTCMonth() + 1;
+  if (m < mes || m === mes && d.getUTCDate() < dia) idade--;
+  return idade;
+}
+var REGENTES_TRADICIONAIS = [
+  "Marte",
+  "V\xEAnus",
+  "Merc\xFArio",
+  "Lua",
+  "Sol",
+  "Merc\xFArio",
+  "V\xEAnus",
+  "Marte",
+  "J\xFApiter",
+  "Saturno",
+  "Saturno",
+  "J\xFApiter"
+];
+function casaPorSignosInteiros(lon, lonAscendente) {
+  return (Math.floor(lon / 30) - Math.floor(lonAscendente / 30) + 12) % 12 + 1;
+}
+function profeccaoAnual(idade, lonAscendente) {
+  const casa = idade % 12 + 1;
+  const indiceSigno = (Math.floor(lonAscendente / 30) + casa - 1) % 12;
+  return { idade, casa, indiceSigno, signo: SIGNOS[indiceSigno], regente: REGENTES_TRADICIONAIS[indiceSigno] };
+}
+var ANO_TROPICO_EM_DIAS = 365.2422;
+function instanteProgredido(nascimento, d) {
+  return new Date(nascimento.getTime() + (d.getTime() - nascimento.getTime()) / (ANO_TROPICO_EM_DIAS * DIA) * DIA);
+}
+function ceuProgredido(nascimento, d) {
+  return ceu(instanteProgredido(nascimento, d));
+}
+var FASES_DA_LUNACAO = [
+  "nova",
+  "crescente",
+  "quarto crescente",
+  "gibosa",
+  "cheia",
+  "disseminadora",
+  "quarto minguante",
+  "bals\xE2mica"
+];
+function faseDaLunacao(lonSol, lonLua) {
+  return FASES_DA_LUNACAO[Math.floor(norm360(lonLua - lonSol) / 45)];
+}
+function mudancasProgredidas(opcoes) {
+  const { nascimento, corpos, cuspides, de, ate } = opcoes;
+  const lon = (corpo, d) => ceuProgredido(nascimento, d).longitudes.get(corpo);
+  const lista = [];
+  for (const corpo of corpos) {
+    let anterior = null;
+    for (let t = de.getTime(); t <= ate.getTime(); t += DIA) {
+      const d = new Date(t);
+      const l = lon(corpo, d);
+      const atual = { signo: Math.floor(l / 30), casa: casaDoGrau(l, cuspides) };
+      if (anterior) {
+        const antes = anterior;
+        if (atual.signo !== antes.signo) {
+          const quando = refinarInstante(new Date(t - DIA), d, (x) => Math.floor(lon(corpo, x) / 30) === antes.signo ? -1 : 1);
+          lista.push({ corpo, tipo: "signo", indiceSigno: atual.signo, signo: SIGNOS[atual.signo], quando });
+        }
+        if (atual.casa !== antes.casa) {
+          const quando = refinarInstante(new Date(t - DIA), d, (x) => casaDoGrau(lon(corpo, x), cuspides) === antes.casa ? -1 : 1);
+          lista.push({ corpo, tipo: "casa", casa: atual.casa, quando });
+        }
+      }
+      anterior = atual;
+    }
+  }
+  return lista;
+}
+function mudancasDeFaseProgredida(opcoes) {
+  const { nascimento, de, ate } = opcoes;
+  const solELua = (d) => {
+    const c = ceuProgredido(nascimento, d);
+    return { sol: c.longitudes.get("Sol"), lua: c.longitudes.get("Lua") };
+  };
+  const lista = [];
+  const p0 = solELua(de);
+  let faseAnterior = faseDaLunacao(p0.sol, p0.lua);
+  for (let t = de.getTime(); t <= ate.getTime(); t += DIA) {
+    const p = solELua(new Date(t));
+    const fase = faseDaLunacao(p.sol, p.lua);
+    if (fase !== faseAnterior) {
+      const limite = FASES_DA_LUNACAO.indexOf(fase) * 45;
+      const quando = refinarInstante(new Date(t - DIA), new Date(t), (d) => {
+        const q = solELua(d);
+        return ((norm360(q.lua - q.sol) - limite + 180) % 360 + 360) % 360 - 180;
+      });
+      lista.push({ fase, quando });
+      faseAnterior = fase;
+    }
+  }
+  return lista;
+}
+function aspectosProgredidos(opcoes) {
+  const { nascimento, corpos, alvos, de, ate } = opcoes;
+  const angulos = opcoes.angulos ?? ANGULOS_NOS_DOIS_SENTIDOS;
+  const passo = (opcoes.passoDias ?? 15) * DIA;
+  const limite = opcoes.limite ?? 3;
+  const lista = [];
+  for (const corpo of corpos) {
+    for (const alvo of alvos) {
+      for (const ang of angulos) {
+        const dv = (d) => desvioAssinado(ceuProgredido(nascimento, d).longitudes.get(corpo), alvo.lon, ang);
+        let anterior = dv(de);
+        for (let t = de.getTime() + passo; t <= ate.getTime(); t += passo) {
+          const d = new Date(t);
+          const atual = dv(d);
+          if (Math.sign(atual) !== Math.sign(anterior) && Math.abs(atual) < limite && Math.abs(anterior) < limite) {
+            lista.push({ corpo, alvo: alvo.nome, angulo: ang, aspecto: Math.abs(ang), quando: refinarInstante(new Date(t - passo), d, dv) });
+          }
+          anterior = atual;
+        }
+      }
+    }
+  }
+  return lista;
 }
 
 // src/efemerides/abundantia.ts
@@ -8016,44 +8403,67 @@ var ABUNDANTIA = {
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
   ABUNDANTIA,
+  ANGULOS_MAIORES,
+  ANGULOS_NOS_DOIS_SENTIDOS,
+  ANO_TROPICO_EM_DIAS,
   ASPECTOS,
   CORPOS,
+  FASES_DA_LUNACAO,
   GLIFOS_DOS_PONTOS,
   GLIFOS_SIGNO,
   GRAUS,
   NOMES_FASE,
+  REGENTES_TRADICIONAIS,
   SIGNOS,
   VERSAO_DO_MAPA,
   VERSAO_DO_MOTOR,
+  amostrasDoCeu,
   armcDoLugar,
+  aspectosNoCeu,
+  aspectosProgredidos,
   calcularAspectos,
   calcularMapa,
   casaDoGrau,
+  casaPorSignosInteiros,
   ceuNoInstante,
+  ceuProgredido,
   cuspidesTopocentricas,
   distanciaAngular,
   estaRetrogrado,
+  estacoesDosPlanetas,
   faseDaLua,
+  faseDaLunacao,
+  fimDaFaseCheia,
   fusoPadraoPorUf,
   fusoParaGravar,
   haEclipse,
+  idadeNaData,
   instanteDoMapa,
   instanteDoNascimento,
   instanteNaZona,
+  instanteProgredido,
   lilithMedia,
   longitudeDaLua,
   longitudeDaTabela,
   longitudeEcliptica,
   luaNasCasas,
+  mudancasDeCasaESigno,
+  mudancasDeFaseProgredida,
+  mudancasProgredidas,
   nodoNorteVerdadeiro,
   norm360,
   obliquidadeVerdadeira,
   orbeDoPar,
   parteDaFortuna,
   pontoDaTabela,
+  pontosTocados,
   posicaoNoSigno,
+  profeccaoAnual,
   proximasLunacoes,
+  refinarInstante,
+  retornoSolar,
   tinhaHorarioDeVerao,
+  transitosSobrePontos,
   zonaDoLocal,
   zonaValida
 });

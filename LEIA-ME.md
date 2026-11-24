@@ -2,7 +2,9 @@
 
 Um só motor para todos os projetos de astrologia da Carol Avoni. Ele só
 calcula: posições, casas, aspectos, fuso e horário de verão, Lua e
-lunações. Textos, telas e dados de clientes ficam em cada projeto.
+lunações e, desde a versão 1.1.0, a previsão (trânsitos, céu do dia,
+ingressos, estações, retorno solar, profecção e progressões). Textos, telas
+e dados de clientes ficam em cada projeto.
 
 Este repositório é público: aqui entra só a matemática. **Nunca** colocar
 aqui dados de clientes, textos de leitura ou chaves de acesso.
@@ -21,7 +23,7 @@ Quando um projeto novo passar a usar o motor, acrescente uma linha aqui.
 **Projeto com Node (como o portal).** No `package.json`:
 
 ```json
-"motor-astro": "github:carolavoni-cell/motor-astro#v1.0.0"
+"motor-astro": "github:carolavoni-cell/motor-astro#v1.1.0"
 ```
 
 e no código:
@@ -33,12 +35,17 @@ import { calcularMapa, zonaDoLocal } from "motor-astro";
 **Página HTML (como o Mapa do dinheiro).** Uma linha antes dos outros scripts:
 
 ```html
-<script src="https://cdn.jsdelivr.net/gh/carolavoni-cell/motor-astro@v1.0.0/dist/motor-astro.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/carolavoni-cell/motor-astro@v1.1.0/dist/motor-astro.js"></script>
 ```
 
 Depois disso, tudo fica em `MotorAstro` (por exemplo
 `MotorAstro.calcularMapa(...)`). O arquivo já traz o astronomy-engine dentro.
 A página precisa de internet para carregar o motor.
+
+**Nunca apontar um projeto para esta pasta do computador** (por exemplo
+`../motor-astro/dist`). A pasta pode estar à frente da versão publicada, e
+o projeto mudaria de resultado sem ninguém conferir. Sempre a versão
+publicada, com o número.
 
 O número depois de `#` ou `@` é a versão. Cada projeto escolhe a sua: uma
 versão nova do motor não muda nada num projeto até alguém trocar esse número
@@ -61,6 +68,28 @@ lá e conferir.
 5. Em cada projeto da tabela acima: trocar o número da versão, conferir o
    projeto e atualizar a tabela.
 
+## Previsão (desde a 1.1.0)
+
+`src/previsao.ts` calcula o céu em movimento sobre um mapa. Veio do Planner
+2027, onde os aspectos foram conferidos nos relatórios dinâmicos do Solar
+Fire. Devolve datas e graus com precisão total: o fuso de exibição, o
+arredondamento, o que entra no produto e o texto são de cada projeto.
+
+- `amostrasDoCeu`: o céu dia a dia num período, base das buscas abaixo.
+- `transitosSobrePontos`: cada trânsito de um planeta sobre um ponto do
+  mapa, com entrada e saída da orbe no minuto, as passagens exatas, a menor
+  distância e a menor distância dentro de uma janela (o ano, por exemplo).
+  Sextil, quadratura e trígono são buscados nos dois sentidos.
+- `aspectosNoCeu`: aspectos exatos entre os planetas do céu (céu do dia).
+- `mudancasDeCasaESigno`: quando um planeta muda de casa no mapa e de signo.
+- `estacoesDosPlanetas`: quando um planeta para e muda de sentido.
+- `pontosTocados`: que pontos do mapa um grau toca (lunação, estação).
+- `fimDaFaseCheia`: quando a Lua chega a 225° do Sol.
+- `retornoSolar`, `idadeNaData`, `profeccaoAnual`, `casaPorSignosInteiros`.
+- Progressões secundárias (um dia por ano trópico): `instanteProgredido`,
+  `ceuProgredido`, `faseDaLunacao`, `mudancasProgredidas`,
+  `mudancasDeFaseProgredida`, `aspectosProgredidos`.
+
 ## O gabarito
 
 `gabarito/` tem 246 mapas de teste (datas de 1930 a 2030, capitais de todos
@@ -69,7 +98,9 @@ manual, horas de troca do horário de verão), 40 fases da Lua, lunações com
 eclipses, a Lua passando pelas casas, a tabela da Abundantia e o fuso de cada
 estado. O `esperado.json` saiu do cálculo do portal e do Mapa do dinheiro em
 2026-10-24, antes de o motor ser separado: é o que os dois projetos já
-mostravam. Nenhum caso usa dado de cliente.
+mostravam. Os dois casos de previsão entraram com a versão 1.1.0, depois de
+o Planner 2027 dar o mesmo resultado com o cálculo antigo dele e com o
+motor. Nenhum caso usa dado de cliente.
 
 ## Convenções (decididas pela Carol)
 
