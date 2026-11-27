@@ -40,8 +40,8 @@ await esbuild.build({
 
 // "motor-astro/completo": o mesmo motor, com as tabelas da NASA carregadas (só Node). O arquivo das tabelas vai junto.
 const completo = { ...comum, entryPoints: [path.join(raiz, "src", "completo.ts")], external: ["astronomy-engine"], logOverride: { "empty-import-meta": "silent" } };
-await esbuild.build({ ...completo, format: "esm", platform: "node", outfile: path.join(raiz, "dist", "completo.js") });
-await esbuild.build({ ...completo, format: "cjs", platform: "node", outfile: path.join(raiz, "dist", "completo.cjs") });
+await esbuild.build({ ...completo, format: "esm", platform: "node", define: { __MOTOR_CJS__: "false" }, outfile: path.join(raiz, "dist", "completo.js") });
+await esbuild.build({ ...completo, format: "cjs", platform: "node", define: { __MOTOR_CJS__: "true" }, outfile: path.join(raiz, "dist", "completo.cjs") });
 fs.copyFileSync(path.join(raiz, "dados", "efemerides-de440.bin"), path.join(raiz, "dist", "efemerides-de440.bin"));
 
 execFileSync(process.execPath, [path.join(raiz, "node_modules", "typescript", "bin", "tsc"), "-p", raiz], { stdio: "inherit" });

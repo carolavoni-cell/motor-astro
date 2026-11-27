@@ -11,8 +11,11 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { instalarEfemerides } from "./efemerides/jpl";
 
-declare const __dirname: string | undefined;
-const aqui = typeof __dirname === "string" ? __dirname : dirname(fileURLToPath(import.meta.url));
+// O build troca __MOTOR_CJS__ por true na versão CommonJS (que tem __dirname) e por false na versão ESM (que tem import.meta.url).
+// Não se testa "typeof __dirname": há ambientes ESM em que ele existe como global e aponta para outra pasta.
+declare const __MOTOR_CJS__: boolean;
+declare const __dirname: string;
+const aqui = __MOTOR_CJS__ ? __dirname : dirname(fileURLToPath(import.meta.url));
 instalarEfemerides(readFileSync(join(aqui, "efemerides-de440.bin")));
 
 export * from "./index";

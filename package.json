@@ -1,6 +1,6 @@
 {
   "name": "motor-astro",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Motor de cálculo astrológico da Carol Avoni: posições, casas topocêntricas, aspectos, fuso e horário de verão, Lua e lunações.",
   "license": "SEE LICENSE IN LICENSE",
   "repository": "github:carolavoni-cell/motor-astro",

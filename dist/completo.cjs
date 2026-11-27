@@ -103,7 +103,6 @@ __export(completo_exports, {
 module.exports = __toCommonJS(completo_exports);
 var import_node_fs = require("node:fs");
 var import_node_path = require("node:path");
-var import_node_url = require("node:url");
 
 // src/efemerides/jpl.ts
 var CHAVE = "__motorAstroEfemerides";
@@ -242,7 +241,7 @@ function estadoGeocentricoDaLua(tt) {
 }
 
 // src/versao.ts
-var VERSAO_DO_MOTOR = "1.2.0";
+var VERSAO_DO_MOTOR = "1.2.1";
 
 // src/base.ts
 var SIGNOS = [
@@ -8601,8 +8600,7 @@ var ABUNDANTIA = {
 };
 
 // src/completo.ts
-var import_meta = {};
-var aqui = typeof __dirname === "string" ? __dirname : (0, import_node_path.dirname)((0, import_node_url.fileURLToPath)(import_meta.url));
+var aqui = true ? __dirname : dirname(fileURLToPath(import_meta.url));
 instalarEfemerides((0, import_node_fs.readFileSync)((0, import_node_path.join)(aqui, "efemerides-de440.bin")));
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {

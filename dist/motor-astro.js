@@ -1,4 +1,4 @@
-/* motor-astro 1.2.0 · https://github.com/carolavoni-cell/motor-astro · inclui astronomy-engine (MIT, Don Cross) */
+/* motor-astro 1.2.1 · https://github.com/carolavoni-cell/motor-astro · inclui astronomy-engine (MIT, Don Cross) */
 "use strict";
 var MotorAstro = (() => {
   var __defProp = Object.defineProperty;
@@ -94,7 +94,7 @@ var MotorAstro = (() => {
   });
 
   // src/versao.ts
-  var VERSAO_DO_MOTOR = "1.2.0";
+  var VERSAO_DO_MOTOR = "1.2.1";
 
   // src/base.ts
   var SIGNOS = [

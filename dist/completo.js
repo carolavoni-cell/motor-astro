@@ -140,7 +140,7 @@ function estadoGeocentricoDaLua(tt) {
 }
 
 // src/versao.ts
-var VERSAO_DO_MOTOR = "1.2.0";
+var VERSAO_DO_MOTOR = "1.2.1";
 
 // src/base.ts
 var SIGNOS = [
@@ -8499,7 +8499,7 @@ var ABUNDANTIA = {
 };
 
 // src/completo.ts
-var aqui = typeof __dirname === "string" ? __dirname : dirname(fileURLToPath(import.meta.url));
+var aqui = false ? __dirname : dirname(fileURLToPath(import.meta.url));
 instalarEfemerides(readFileSync(join(aqui, "efemerides-de440.bin")));
 export {
   ABUNDANTIA,
