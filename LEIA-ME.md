@@ -15,7 +15,7 @@ aqui dados de clientes, textos de leitura ou chaves de acesso.
 |---|---|---|
 | Portal do Acompanhamento | `portal/package.json`, linha `"motor-astro"` | v1.1.0 |
 | Mapa do dinheiro | `package.json` da raiz, linha `"motor-astro"` (o `gerador/pacote_fatos.cjs` lê o motor instalado) | v1.1.0 |
-| Planner 2027 | `package.json` da raiz, linha `"motor-astro"` (quem chama é o `cerebro/inventario.mjs`, pela entrada `motor-astro/completo`) | v1.2.1 |
+| Planner 2027 | `package.json` da raiz, linha `"motor-astro"` (quem chama é o `cerebro/inventario.mjs`, pela entrada `motor-astro/completo`) | v1.2.2 |
 
 Quando um projeto novo passar a usar o motor, acrescente uma linha aqui.
 
@@ -24,7 +24,7 @@ Quando um projeto novo passar a usar o motor, acrescente uma linha aqui.
 **Projeto com Node (como o portal).** No `package.json`:
 
 ```json
-"motor-astro": "github:carolavoni-cell/motor-astro#v1.2.1"
+"motor-astro": "github:carolavoni-cell/motor-astro#v1.2.2"
 ```
 
 e no código:
@@ -106,6 +106,7 @@ tempo (ΔT) por fórmula e a conta do Nodo. A versão 1.2.0 corrige as três.
   minutos (perto da estação o planeta quase não anda). No modo sem tabelas a
   média fica entre 0,5 e 9 segundos de arco, conforme o planeta.
 - **1.2.1:** a entrada `completo` acha o arquivo das tabelas pela pasta do próprio motor em qualquer ambiente (a 1.2.0 errava a pasta quando existia um `__dirname` global). Nenhum resultado muda. Em projeto com empacotador (Next.js), deixar o `motor-astro` fora do pacote do servidor (`serverExternalPackages`), para o Node achar o arquivo.
+- **1.2.2:** o desvio da luz pelo Sol ganhou teto (1,75 segundo de arco, o valor na borda do disco) e cai a zero atrás do disco. A 1.2.1 exagerava quando um planeta passava atrás do Sol e criou duas estações falsas de Urano em 27/05/2027, achadas pela validação do Planner. Só muda o modo completo, e só a menos de meio grau do Sol.
 - **A Swiss Ephemeris não entra no motor** (licença AGPL ou paga). Ela é só
   a régua de conferência, no computador da Carol.
 

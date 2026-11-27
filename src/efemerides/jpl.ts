@@ -139,10 +139,18 @@ export function direcaoAparente(nome: string, tt: number): [number, number, numb
     const pq = p[0] * qu[0] + p[1] * qu[1] + p[2] * qu[2];
     const ep = eu[0] * p[0] + eu[1] * p[1] + eu[2] * p[2];
     const qe = qu[0] * eu[0] + qu[1] * eu[1] + qu[2] * eu[2];
-    // atrás do disco do Sol a fórmula não vale (o planeta não é visível): fica sem desvio
-    if (1 + qe > 1e-5) {
+    if (1 + qe > 1e-12) {
       const f = (2 * 1.476625 / dist) / (1 + qe); // 2GM/c² do Sol = 2,95 km
-      p = [p[0] + f * (pq * eu[0] - ep * qu[0]), p[1] + f * (pq * eu[1] - ep * qu[1]), p[2] + f * (pq * eu[2] - ep * qu[2])];
+      let c = [f * (pq * eu[0] - ep * qu[0]), f * (pq * eu[1] - ep * qu[1]), f * (pq * eu[2] - ep * qu[2])];
+      // A fórmula cresce sem limite quando o planeta se alinha atrás do Sol. Na borda do disco solar o desvio é de 1,75
+      // segundo de arco: é o teto. Atrás do disco (planeta encoberto) o desvio cai em linha reta até zero no centro,
+      // para a posição não dar saltos (a versão 1.2.1 criava estações falsas de Urano em 27/05/2027).
+      const TETO = 8.48e-6, BORDA = 4.654e-3; // radianos: 1,75 segundo de arco e o raio aparente do Sol (0,267°)
+      const tam = Math.hypot(c[0], c[1], c[2]);
+      const elong = Math.acos(Math.max(-1, Math.min(1, -ep)));
+      const limite = elong < BORDA ? TETO * (elong / BORDA) : TETO;
+      if (tam > limite) c = c.map((x) => x * (limite / tam));
+      p = [p[0] + c[0], p[1] + c[1], p[2] + c[2]];
     }
   }
   return [p[0] + terra[3] / C_KM_S, p[1] + terra[4] / C_KM_S, p[2] + terra[5] / C_KM_S];
