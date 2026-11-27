@@ -10,7 +10,8 @@ export declare const ANGULOS_NOS_DOIS_SENTIDOS: number[];
 /**
  * Afina um instante por bisseção: procura, entre `a` e `b`, o ponto em que
  * `f` muda de sinal. Para quando o intervalo fica menor que `passoMs`
- * (um minuto por padrão) e devolve o fim desse intervalo.
+ * e devolve o meio desse intervalo. Desde a versão 1.2.0 o padrão é um segundo (antes, um minuto):
+ * com as tabelas da NASA a posição é precisa o bastante para o horário valer até o segundo.
  */
 export declare function refinarInstante(a: Date, b: Date, f: (d: Date) => number, passoMs?: number): Date;
 export type AmostraDoCeu = {

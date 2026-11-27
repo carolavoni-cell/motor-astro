@@ -43,7 +43,7 @@ export type DadosDoNascimento = {
     horarioDeVerao?: boolean;
 };
 /** Versão do cálculo: muda quando a regra muda, para recalcular o que está guardado. */
-export declare const VERSAO_DO_MAPA = 4;
+export declare const VERSAO_DO_MAPA = 5;
 export declare const GLIFOS_DOS_PONTOS: Record<string, string>;
 export type InstanteDoMapa = {
     instante: Date;

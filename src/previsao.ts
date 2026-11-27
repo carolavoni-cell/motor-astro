@@ -34,9 +34,10 @@ const desvioAssinado = (lon: number, lonAlvo: number, angulo: number) =>
 /**
  * Afina um instante por bisseção: procura, entre `a` e `b`, o ponto em que
  * `f` muda de sinal. Para quando o intervalo fica menor que `passoMs`
- * (um minuto por padrão) e devolve o fim desse intervalo.
+ * e devolve o meio desse intervalo. Desde a versão 1.2.0 o padrão é um segundo (antes, um minuto):
+ * com as tabelas da NASA a posição é precisa o bastante para o horário valer até o segundo.
  */
-export function refinarInstante(a: Date, b: Date, f: (d: Date) => number, passoMs = 60_000): Date {
+export function refinarInstante(a: Date, b: Date, f: (d: Date) => number, passoMs = 1_000): Date {
   let ta = a.getTime();
   let tb = b.getTime();
   let fa = f(new Date(ta));
@@ -49,7 +50,7 @@ export function refinarInstante(a: Date, b: Date, f: (d: Date) => number, passoM
       fa = fm;
     } else tb = tm;
   }
-  return new Date(tb);
+  return new Date(Math.trunc((ta + tb) / 2));
 }
 
 /* ------------------------------------------------------------------ */

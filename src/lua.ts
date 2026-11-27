@@ -55,6 +55,27 @@ export function haEclipse(fase: "nova" | "cheia", data: Date): boolean {
   return Math.abs(pico.getTime() - data.getTime()) < UM_DIA;
 }
 
+/**
+ * O instante exato da Lua Nova ou Cheia: a Lua a 0° ou a 180° do Sol, nas posições aparentes dos dois
+ * (as mesmas do mapa). A busca do astronomy-engine usa outra convenção e fica cerca de 40 segundos adiantada
+ * em relação à Swiss Ephemeris e ao Solar Fire; aqui ela só dá o ponto de partida.
+ */
+function instanteDaLunacao(perto: Date, fase: "nova" | "cheia"): Date {
+  const alvo = fase === "nova" ? 0 : 180;
+  const desvio = (t: number) => {
+    const tempo = A.MakeTime(new Date(t));
+    const d = longitudeEcliptica(A.Body.Moon, tempo) - longitudeEcliptica(A.Body.Sun, tempo) - alvo;
+    return ((d % 360) + 540) % 360 - 180;
+  };
+  let a = perto.getTime() - 20 * 60_000, b = perto.getTime() + 20 * 60_000;
+  if (desvio(a) > 0 || desvio(b) < 0) return perto; // não deveria acontecer: fica o instante do astronomy-engine
+  while (b - a > 1_000) {
+    const m = Math.trunc((a + b) / 2);
+    if (desvio(m) < 0) a = m; else b = m;
+  }
+  return new Date(Math.trunc((a + b) / 2));
+}
+
 /** Luas Novas e Cheias a partir de uma data (as crescentes e minguantes ficam de fora). */
 export function proximasLunacoes(quantas = 6, desde = new Date()): LunacaoCalculada[] {
   const lista: LunacaoCalculada[] = [];
@@ -62,11 +83,11 @@ export function proximasLunacoes(quantas = 6, desde = new Date()): LunacaoCalcul
   while (lista.length < quantas) {
     if (quarto.quarter === 0 || quarto.quarter === 2) {
       const fase = quarto.quarter === 0 ? "nova" : "cheia";
-      const data = quarto.time.date;
+      const data = instanteDaLunacao(quarto.time.date, fase);
       lista.push({
         fase,
         quando: data.toISOString(),
-        signo: posicaoNoSigno(longitudeEcliptica(A.Body.Moon, quarto.time)).signo,
+        signo: posicaoNoSigno(longitudeEcliptica(A.Body.Moon, A.MakeTime(data))).signo,
         eclipse: haEclipse(fase, data),
       });
     }

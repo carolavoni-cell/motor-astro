@@ -15,7 +15,7 @@ aqui dados de clientes, textos de leitura ou chaves de acesso.
 |---|---|---|
 | Portal do Acompanhamento | `portal/package.json`, linha `"motor-astro"` | v1.1.0 |
 | Mapa do dinheiro | `package.json` da raiz, linha `"motor-astro"` (o `gerador/pacote_fatos.cjs` lê o motor instalado) | v1.1.0 |
-| Planner 2027 | `package.json` da raiz, linha `"motor-astro"` (quem chama é o `cerebro/inventario.mjs`) | v1.1.0 |
+| Planner 2027 | `package.json` da raiz, linha `"motor-astro"` (quem chama é o `cerebro/inventario.mjs`, pela entrada `motor-astro/completo`) | v1.2.0 |
 
 Quando um projeto novo passar a usar o motor, acrescente uma linha aqui.
 
@@ -24,7 +24,7 @@ Quando um projeto novo passar a usar o motor, acrescente uma linha aqui.
 **Projeto com Node (como o portal).** No `package.json`:
 
 ```json
-"motor-astro": "github:carolavoni-cell/motor-astro#v1.1.0"
+"motor-astro": "github:carolavoni-cell/motor-astro#v1.2.0"
 ```
 
 e no código:
@@ -68,6 +68,45 @@ lá e conferir.
    `git commit`, `git tag v1.1.0`, `git push --follow-tags`.
 5. Em cada projeto da tabela acima: trocar o número da versão, conferir o
    projeto e atualizar a tabela.
+
+## Efeméride da NASA (desde a 1.2.0)
+
+Em novembro de 2026 a validação da agenda do Planner mostrou que o motor 1.1.0
+diferia da Swiss Ephemeris (a régua do Solar Fire) em 10 a 20 segundos de
+arco. Num mapa natal isso não aparece, mas deslocava o horário de trânsitos
+em minutos ou horas e chegou a trocar o dia de um evento. As causas eram
+três: a teoria encurtada dos planetas do astronomy-engine, a correção de
+tempo (ΔT) por fórmula e a conta do Nodo. A versão 1.2.0 corrige as três.
+
+- **Tabelas da NASA.** `dados/efemerides-de440.bin` (9 MB, 1900 a 2100) tem
+  as posições do JPL DE440, a mesma base da Swiss Ephemeris. Os dados do JPL
+  são públicos. Quem monta o arquivo é `scripts/montar-efemerides.mjs`, a
+  partir do `de440s.bsp` baixado do site do JPL (o .bsp não fica aqui).
+- **Dois modos.** `motor-astro/completo` (só Node: servidor do Portal,
+  Planner) carrega as tabelas e deve ser usado sempre que o resultado tiver
+  data e hora de evento. `motor-astro` sem as tabelas (páginas no navegador)
+  continua com o astronomy-engine: serve para mapa natal, não para horário de
+  evento. `precisaoDoMotor()` diz em que modo o programa está.
+
+  ```ts
+  import { ceuNoInstante, precisaoDoMotor } from "motor-astro/completo";
+  ```
+
+  Basta importar de `motor-astro/completo` uma vez, no começo do programa: o
+  que for importado de `motor-astro` depois, no mesmo programa, já usa as
+  tabelas.
+- **ΔT por tabela** (`src/deltat.ts`), com os valores medidos e a projeção
+  da Swiss Ephemeris. Vale nos dois modos.
+- **Instante exato até o segundo** (`refinarInstante`), lunações na mesma
+  convenção do Solar Fire e estação pelo sentido do movimento no instante.
+- **Como foi medido** (600 datas de 1900 a 2100, contra a Swiss Ephemeris
+  com os arquivos completos): planetas, Sol e Lua a 0,007 segundo de arco em
+  média e 0,03 no máximo; Nodo Norte a 0,3 no máximo. Nos eventos de 2027,
+  aspectos e lunações a até 1 segundo; estações de planetas lentos a até 6
+  minutos (perto da estação o planeta quase não anda). No modo sem tabelas a
+  média fica entre 0,5 e 9 segundos de arco, conforme o planeta.
+- **A Swiss Ephemeris não entra no motor** (licença AGPL ou paga). Ela é só
+  a régua de conferência, no computador da Carol.
 
 ## Previsão (desde a 1.1.0)
 

@@ -9,6 +9,8 @@
 export * from "./versao";
 export * from "./base";
 export * from "./pontos";
+export { deltaT } from "./deltat";
+export { instalarEfemerides, removerEfemerides, precisaoDoMotor, efemeridesCobrem } from "./efemerides/jpl";
 export * from "./casas";
 export * from "./aspectos";
 export * from "./fuso";

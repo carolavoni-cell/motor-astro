@@ -1,4 +1,5 @@
 import * as A from "astronomy-engine";
+import "./deltat";
 /**
  * Posições dos pontos do mapa, sempre no zodíaco DA DATA (ECT), que é o
  * usado na astrologia tropical e no Solar Fire.

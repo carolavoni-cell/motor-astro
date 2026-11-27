@@ -56,7 +56,9 @@ __export(index_exports, {
   ceuNoInstante: () => ceuNoInstante,
   ceuProgredido: () => ceuProgredido,
   cuspidesTopocentricas: () => cuspidesTopocentricas,
+  deltaT: () => deltaT,
   distanciaAngular: () => distanciaAngular,
+  efemeridesCobrem: () => efemeridesCobrem,
   estaRetrogrado: () => estaRetrogrado,
   estacoesDosPlanetas: () => estacoesDosPlanetas,
   faseDaLua: () => faseDaLua,
@@ -66,6 +68,7 @@ __export(index_exports, {
   fusoParaGravar: () => fusoParaGravar,
   haEclipse: () => haEclipse,
   idadeNaData: () => idadeNaData,
+  instalarEfemerides: () => instalarEfemerides,
   instanteDoMapa: () => instanteDoMapa,
   instanteDoNascimento: () => instanteDoNascimento,
   instanteNaZona: () => instanteNaZona,
@@ -86,9 +89,11 @@ __export(index_exports, {
   pontoDaTabela: () => pontoDaTabela,
   pontosTocados: () => pontosTocados,
   posicaoNoSigno: () => posicaoNoSigno,
+  precisaoDoMotor: () => precisaoDoMotor,
   profeccaoAnual: () => profeccaoAnual,
   proximasLunacoes: () => proximasLunacoes,
   refinarInstante: () => refinarInstante,
+  removerEfemerides: () => removerEfemerides,
   retornoSolar: () => retornoSolar,
   tinhaHorarioDeVerao: () => tinhaHorarioDeVerao,
   transitosSobrePontos: () => transitosSobrePontos,
@@ -98,7 +103,7 @@ __export(index_exports, {
 module.exports = __toCommonJS(index_exports);
 
 // src/versao.ts
-var VERSAO_DO_MOTOR = "1.1.0";
+var VERSAO_DO_MOTOR = "1.2.0";
 
 // src/base.ts
 var SIGNOS = [
@@ -153,36 +158,211 @@ function casaDoGrau(lon, cuspides) {
 }
 
 // src/pontos.ts
+var A2 = __toESM(require("astronomy-engine"), 1);
+
+// src/deltat.ts
 var A = __toESM(require("astronomy-engine"), 1);
+var ANO_INICIAL = 1890;
+var SEGUNDOS = [-3.851, -4.042, -4.341, -4.659, -4.905, -4.989, -4.839, -4.449, -3.831, -2.995, -1.953, -0.724, 0.64, 2.079, 3.532, 4.943, 6.259, 7.504, 8.712, 9.921, 11.158, 12.449, 13.767, 15.076, 16.329, 17.492, 18.53, 19.453, 20.266, 20.987, 21.627, 22.197, 22.697, 23.13, 23.496, 23.796, 24.03, 24.203, 24.323, 24.394, 24.423, 24.416, 24.38, 24.322, 24.248, 24.167, 24.088, 24.04, 24.059, 24.176, 24.428, 24.832, 25.349, 25.926, 26.511, 27.051, 27.506, 27.892, 28.238, 28.576, 28.932, 29.322, 29.698, 30.181, 30.623, 31.07, 31.35, 31.681, 32.181, 32.68, 33.15, 33.591, 34.001, 34.47, 35.03, 35.732, 36.541, 37.431, 38.29, 39.202, 40.181, 41.171, 42.23, 43.372, 44.486, 45.477, 46.457, 47.524, 48.536, 49.587, 50.539, 51.382, 52.168, 52.957, 53.788, 54.344, 54.872, 55.323, 55.82, 56.301, 56.856, 57.566, 58.309, 59.124, 59.986, 60.786, 61.629, 62.297, 62.967, 63.468, 63.828, 64.091, 64.3, 64.473, 64.574, 64.688, 64.846, 65.147, 65.457, 65.777, 66.07, 66.325, 66.603, 66.908, 67.281, 67.644, 68.102, 68.594, 68.968, 69.22, 69.361, 69.359, 69.294, 69.183, 69.1, 69, 68.9, 68.8, 68.8, 69.037, 69.276, 69.518, 69.761, 70.008, 70.257, 70.508, 70.761, 71.017, 71.276, 71.536, 71.8, 72.066, 72.335, 72.606, 72.88, 73.157, 73.436, 73.718, 74.003, 74.291, 74.581, 74.874, 75.169, 75.469, 75.77, 76.075, 76.382, 76.693, 77.006, 77.323, 77.642, 77.965, 78.29, 78.619, 78.951, 79.286, 79.624, 79.965, 80.31, 80.658, 81.009, 81.363, 81.721, 82.083, 82.447, 82.814, 83.185, 83.561, 83.939, 84.32, 84.705, 85.094, 85.486, 85.882, 86.281, 86.685, 87.091, 87.501, 87.915, 88.334, 88.755, 89.18, 89.609, 90.043, 90.479, 90.92, 91.364, 91.814, 92.266, 92.722, 93.182, 93.646, 94.114, 94.587, 95.063, 95.545, 96.029, 96.518, 97.011, 97.51, 98.011];
+function deltaT(ut) {
+  const ano = 2e3 + (ut + 0.5) / 365.2425;
+  const i = Math.floor(ano) - ANO_INICIAL;
+  if (i < 0 || i >= SEGUNDOS.length - 1) return A.DeltaT_EspenakMeeus(ut);
+  return SEGUNDOS[i] + (SEGUNDOS[i + 1] - SEGUNDOS[i]) * (ano - Math.floor(ano));
+}
+A.SetDeltaTFunction(deltaT);
+
+// src/efemerides/jpl.ts
+var CHAVE = "__motorAstroEfemerides";
+var global = globalThis;
+var guardadas = () => global[CHAVE] ?? null;
+var C_KM_S = 299792.458;
+var CORPO_JPL = {
+  "Merc\xFArio": 1,
+  "V\xEAnus": 2,
+  "Marte": 4,
+  "J\xFApiter": 5,
+  "Saturno": 6,
+  "Urano": 7,
+  "Netuno": 8,
+  "Plut\xE3o": 9,
+  "Sol": 10
+};
+function instalarEfemerides(bytes) {
+  const u8 = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+  const buf = u8.buffer.slice(u8.byteOffset, u8.byteOffset + u8.byteLength);
+  const dv = new DataView(buf);
+  let marca = "";
+  for (let i = 0; i < 8; i++) marca += String.fromCharCode(dv.getUint8(i));
+  if (marca !== "MAJPL001") throw new Error("motor-astro: arquivo de efem\xE9rides em formato desconhecido");
+  const tamanho = dv.getUint32(8, true);
+  const cab = new Uint8Array(buf, 12, tamanho);
+  let json = "";
+  for (let i = 0; i < cab.length; i++) json += String.fromCharCode(cab[i]);
+  const c = JSON.parse(json);
+  const base = 12 + tamanho;
+  const segs = /* @__PURE__ */ new Map();
+  for (const s of c.segs) {
+    segs.set(s.id, {
+      init: s.init,
+      intlen: s.intlen,
+      n: s.n,
+      nc: s.nc,
+      a: new Float64Array(buf, base + s.offA, s.n * 6),
+      b: new Float32Array(buf, base + s.offB, s.n * 3 * (s.nc - 2))
+    });
+  }
+  global[CHAVE] = { fonte: c.fonte, emrat: c.emrat, etIni: c.etIni, etFim: c.etFim, segs };
+}
+function removerEfemerides() {
+  global[CHAVE] = null;
+}
+function precisaoDoMotor() {
+  return guardadas() ? "completa" : "b\xE1sica";
+}
+function efemeridesCobrem(tt) {
+  const t = guardadas();
+  if (!t) return false;
+  const et = tt * 86400;
+  return et > t.etIni + 2 * 86400 && et < t.etFim - 2 * 86400;
+}
+function estado(seg, et) {
+  let i = Math.floor((et - seg.init) / seg.intlen);
+  if (i < 0) i = 0;
+  if (i >= seg.n) i = seg.n - 1;
+  const raio = seg.intlen / 2;
+  const x = (et - (seg.init + (i + 0.5) * seg.intlen)) / raio;
+  const m = seg.nc - 2;
+  const r = [0, 0, 0, 0, 0, 0];
+  for (let k = 0; k < 3; k++) {
+    const c0 = seg.a[i * 6 + k * 2], c1 = seg.a[i * 6 + k * 2 + 1];
+    let t0 = 1, t1 = x, d0 = 0, d1 = 1;
+    let p = c0 + c1 * x, v = c1;
+    const o = (i * 3 + k) * m;
+    for (let j = 0; j < m; j++) {
+      const t2 = 2 * x * t1 - t0;
+      const d2 = 2 * t1 + 2 * x * d1 - d0;
+      const c = seg.b[o + j];
+      p += c * t2;
+      v += c * d2;
+      t0 = t1;
+      t1 = t2;
+      d0 = d1;
+      d1 = d2;
+    }
+    r[k] = p;
+    r[k + 3] = v / raio;
+  }
+  return r;
+}
+var soma = (a, b, f = 1) => a.map((x, i) => x + f * b[i]);
+function baricentrico(t, nome, et) {
+  if (nome === "Terra" || nome === "Lua") {
+    const emb = estado(t.segs.get(3), et), lua = estado(t.segs.get(301), et);
+    return nome === "Lua" ? soma(emb, lua) : soma(emb, lua, -1 / t.emrat);
+  }
+  return estado(t.segs.get(CORPO_JPL[nome]), et);
+}
+function direcaoAparente(nome, tt) {
+  const t = guardadas();
+  const et = tt * 86400;
+  const terra = baricentrico(t, "Terra", et);
+  let luz = 0, g = [0, 0, 0];
+  for (let i = 0; i < 3; i++) {
+    const c = baricentrico(t, nome, et - luz);
+    g = [c[0] - terra[0], c[1] - terra[1], c[2] - terra[2]];
+    luz = Math.hypot(g[0], g[1], g[2]) / C_KM_S;
+  }
+  const d = Math.hypot(g[0], g[1], g[2]);
+  let p = [g[0] / d, g[1] / d, g[2] / d];
+  if (nome !== "Sol" && nome !== "Lua") {
+    const sol = baricentrico(t, "Sol", et);
+    const e = [terra[0] - sol[0], terra[1] - sol[1], terra[2] - sol[2]];
+    const dist = Math.hypot(e[0], e[1], e[2]);
+    const q = [g[0] + e[0], g[1] + e[1], g[2] + e[2]];
+    const dq = Math.hypot(q[0], q[1], q[2]);
+    const eu = e.map((x) => x / dist), qu = q.map((x) => x / dq);
+    const pq = p[0] * qu[0] + p[1] * qu[1] + p[2] * qu[2];
+    const ep = eu[0] * p[0] + eu[1] * p[1] + eu[2] * p[2];
+    const qe = qu[0] * eu[0] + qu[1] * eu[1] + qu[2] * eu[2];
+    if (1 + qe > 1e-5) {
+      const f = 2 * 1.476625 / dist / (1 + qe);
+      p = [p[0] + f * (pq * eu[0] - ep * qu[0]), p[1] + f * (pq * eu[1] - ep * qu[1]), p[2] + f * (pq * eu[2] - ep * qu[2])];
+    }
+  }
+  return [p[0] + terra[3] / C_KM_S, p[1] + terra[4] / C_KM_S, p[2] + terra[5] / C_KM_S];
+}
+function nutacaoQueFalta(tt) {
+  const T = tt / 36525, r = Math.PI / 648e3;
+  const l = (485868.249036 + 17179159232178e-4 * T) * r;
+  const lp = (128710479305e-5 + 1295965810481e-4 * T) * r;
+  const F = (335779.526232 + 17395272628478e-4 * T) * r;
+  const D = (107226070369e-5 + 1602961601209e-3 * T) * r;
+  const O = (450160.398036 - 69628905431e-4 * T) * r;
+  const soma2 = -516821 * Math.sin(lp + 2 * F - 2 * D + 2 * O) + 711159 * Math.sin(l) - 387298 * Math.sin(2 * F + O) - 301461 * Math.sin(l + 2 * F + 2 * O) + 215829 * Math.sin(-lp + 2 * F - 2 * D + 2 * O) + 128227 * Math.sin(2 * F - 2 * D + O) + 123457 * Math.sin(-l + 2 * F + 2 * O) + 156994 * Math.sin(-l + 2 * D) + 63110 * Math.sin(l + O) - 57976 * Math.sin(-l + O) - 59641 * Math.sin(-l + 2 * F + 2 * D + 2 * O) - 51613 * Math.sin(l + 2 * F + O) + 45893 * Math.sin(-2 * l + 2 * F + O) + 63384 * Math.sin(2 * D) - 38571 * Math.sin(2 * F + 2 * D + 2 * O);
+  return soma2 * 1e-7 / 3600;
+}
+function estadoGeocentricoDaLua(tt) {
+  const t = guardadas();
+  const lua = estado(t.segs.get(301), tt * 86400);
+  return lua.map((x) => x * (1 + 1 / t.emrat));
+}
+
+// src/pontos.ts
 var CORPOS = [
-  { nome: "Sol", corpo: A.Body.Sun, glifo: "\u2609" },
-  { nome: "Lua", corpo: A.Body.Moon, glifo: "\u263D" },
-  { nome: "Merc\xFArio", corpo: A.Body.Mercury, glifo: "\u263F" },
-  { nome: "V\xEAnus", corpo: A.Body.Venus, glifo: "\u2640" },
-  { nome: "Marte", corpo: A.Body.Mars, glifo: "\u2642" },
-  { nome: "J\xFApiter", corpo: A.Body.Jupiter, glifo: "\u2643" },
-  { nome: "Saturno", corpo: A.Body.Saturn, glifo: "\u2644" },
-  { nome: "Urano", corpo: A.Body.Uranus, glifo: "\u2645" },
-  { nome: "Netuno", corpo: A.Body.Neptune, glifo: "\u2646" },
-  { nome: "Plut\xE3o", corpo: A.Body.Pluto, glifo: "\u2647" }
+  { nome: "Sol", corpo: A2.Body.Sun, glifo: "\u2609" },
+  { nome: "Lua", corpo: A2.Body.Moon, glifo: "\u263D" },
+  { nome: "Merc\xFArio", corpo: A2.Body.Mercury, glifo: "\u263F" },
+  { nome: "V\xEAnus", corpo: A2.Body.Venus, glifo: "\u2640" },
+  { nome: "Marte", corpo: A2.Body.Mars, glifo: "\u2642" },
+  { nome: "J\xFApiter", corpo: A2.Body.Jupiter, glifo: "\u2643" },
+  { nome: "Saturno", corpo: A2.Body.Saturn, glifo: "\u2644" },
+  { nome: "Urano", corpo: A2.Body.Uranus, glifo: "\u2645" },
+  { nome: "Netuno", corpo: A2.Body.Neptune, glifo: "\u2646" },
+  { nome: "Plut\xE3o", corpo: A2.Body.Pluto, glifo: "\u2647" }
 ];
+var NOME_NAS_TABELAS = /* @__PURE__ */ new Map([
+  [A2.Body.Sun, "Sol"],
+  [A2.Body.Moon, "Lua"],
+  [A2.Body.Mercury, "Merc\xFArio"],
+  [A2.Body.Venus, "V\xEAnus"],
+  [A2.Body.Mars, "Marte"],
+  [A2.Body.Jupiter, "J\xFApiter"],
+  [A2.Body.Saturn, "Saturno"],
+  [A2.Body.Uranus, "Urano"],
+  [A2.Body.Neptune, "Netuno"],
+  [A2.Body.Pluto, "Plut\xE3o"]
+]);
 function longitudeEcliptica(corpo, tempo) {
-  if (corpo === A.Body.Moon) return norm360(A.EclipticGeoMoon(tempo).lon);
-  const vetor = A.GeoVector(corpo, tempo, true);
-  const daData = A.RotateVector(A.Rotation_EQJ_ECT(tempo), vetor);
+  const nome = NOME_NAS_TABELAS.get(corpo);
+  if (nome && efemeridesCobrem(tempo.tt)) {
+    const [x, y, z] = direcaoAparente(nome, tempo.tt);
+    const daData2 = A2.RotateVector(A2.Rotation_EQJ_ECT(tempo), new A2.Vector(x, y, z, tempo));
+    return norm360(Math.atan2(daData2.y, daData2.x) / GRAUS + nutacaoQueFalta(tempo.tt));
+  }
+  if (corpo === A2.Body.Moon) return norm360(A2.EclipticGeoMoon(tempo).lon);
+  const vetor = A2.GeoVector(corpo, tempo, true);
+  const daData = A2.RotateVector(A2.Rotation_EQJ_ECT(tempo), vetor);
   return norm360(Math.atan2(daData.y, daData.x) / GRAUS);
 }
 function obliquidadeVerdadeira(tempo) {
-  const polo = A.RotateVector(A.Rotation_EQD_ECT(tempo), new A.Vector(0, 0, 1, tempo));
+  const polo = A2.RotateVector(A2.Rotation_EQD_ECT(tempo), new A2.Vector(0, 0, 1, tempo));
   return Math.acos(Math.min(1, Math.max(-1, polo.z))) / GRAUS;
 }
 function armcDoLugar(tempo, longitudeLugar) {
-  return norm360(A.SiderealTime(tempo) * 15 + longitudeLugar);
+  return norm360(A2.SiderealTime(tempo) * 15 + longitudeLugar);
 }
 function vetorLuaDaData(tempo) {
-  return A.RotateVector(A.Rotation_EQJ_ECT(tempo), A.GeoMoon(tempo));
+  return A2.RotateVector(A2.Rotation_EQJ_ECT(tempo), A2.GeoMoon(tempo));
 }
 function nodoNorteVerdadeiro(tempo) {
+  if (efemeridesCobrem(tempo.tt)) {
+    const e = estadoGeocentricoDaLua(tempo.tt);
+    const rot = A2.Rotation_EQJ_ECT(tempo);
+    const r = A2.RotateVector(rot, new A2.Vector(e[0], e[1], e[2], tempo));
+    const w = A2.RotateVector(rot, new A2.Vector(e[3], e[4], e[5], tempo));
+    return norm360(Math.atan2(r.y * w.z - r.z * w.y, -(r.z * w.x - r.x * w.z)) / GRAUS + nutacaoQueFalta(tempo.tt));
+  }
   const passo = 0.02;
   const antes = vetorLuaDaData(tempo.AddDays(-passo / 2));
   const depois = vetorLuaDaData(tempo.AddDays(passo / 2));
@@ -206,9 +386,9 @@ function parteDaFortuna(asc, sol, lua, deDia) {
   return norm360(deDia ? asc + lua - sol : asc + sol - lua);
 }
 function estaRetrogrado(corpo, tempo) {
-  if (corpo === A.Body.Sun || corpo === A.Body.Moon) return false;
-  const antes = longitudeEcliptica(corpo, tempo.AddDays(-0.5));
-  const depois = longitudeEcliptica(corpo, tempo.AddDays(0.5));
+  if (corpo === A2.Body.Sun || corpo === A2.Body.Moon) return false;
+  const antes = longitudeEcliptica(corpo, tempo.AddDays(-2e-3));
+  const depois = longitudeEcliptica(corpo, tempo.AddDays(2e-3));
   let avanco = depois - antes;
   if (avanco > 180) avanco -= 360;
   if (avanco < -180) avanco += 360;
@@ -459,8 +639,8 @@ function fusoPadraoPorUf(uf) {
 }
 
 // src/mapa.ts
-var A2 = __toESM(require("astronomy-engine"), 1);
-var VERSAO_DO_MAPA = 4;
+var A3 = __toESM(require("astronomy-engine"), 1);
+var VERSAO_DO_MAPA = 5;
 var GLIFOS_DOS_PONTOS = {
   ...Object.fromEntries(CORPOS.map((c) => [c.nome, c.glifo])),
   "Nodo Norte": "\u260A",
@@ -492,7 +672,7 @@ function instanteDoMapa(dados) {
   };
 }
 function ceuNoInstante(instante, lugar, comCasas) {
-  const tempo = A2.MakeTime(instante);
+  const tempo = A3.MakeTime(instante);
   const longitudes = /* @__PURE__ */ new Map();
   for (const corpo of CORPOS) longitudes.set(corpo.nome, longitudeEcliptica(corpo.corpo, tempo));
   const nodoNorte = nodoNorteVerdadeiro(tempo);
@@ -543,7 +723,7 @@ function calcularMapa(dados) {
 }
 
 // src/lua.ts
-var A3 = __toESM(require("astronomy-engine"), 1);
+var A4 = __toESM(require("astronomy-engine"), 1);
 var NOMES_FASE = {
   nova: "Lua Nova",
   crescente: "Lua Crescente",
@@ -551,41 +731,57 @@ var NOMES_FASE = {
   minguante: "Lua Minguante"
 };
 function longitudeDaLua(data) {
-  return longitudeEcliptica(A3.Body.Moon, A3.MakeTime(data));
+  return longitudeEcliptica(A4.Body.Moon, A4.MakeTime(data));
 }
 function faseDaLua(agora = /* @__PURE__ */ new Date()) {
-  const tempo = A3.MakeTime(agora);
-  const angulo = A3.MoonPhase(tempo);
+  const tempo = A4.MakeTime(agora);
+  const angulo = A4.MoonPhase(tempo);
   const fase = angulo < 90 ? "nova" : angulo < 180 ? "crescente" : angulo < 270 ? "cheia" : "minguante";
-  const iluminada = Math.round(A3.Illumination(A3.Body.Moon, tempo).phase_fraction * 100);
+  const iluminada = Math.round(A4.Illumination(A4.Body.Moon, tempo).phase_fraction * 100);
   return {
     fase,
     nome: NOMES_FASE[fase],
-    signo: posicaoNoSigno(longitudeEcliptica(A3.Body.Moon, tempo)).signo,
+    signo: posicaoNoSigno(longitudeEcliptica(A4.Body.Moon, tempo)).signo,
     iluminada
   };
 }
 var UM_DIA = 24 * 36e5;
 function haEclipse(fase, data) {
-  const inicio = A3.MakeTime(new Date(data.getTime() - 2 * UM_DIA));
-  const pico = fase === "nova" ? A3.SearchGlobalSolarEclipse(inicio).peak.date : A3.SearchLunarEclipse(inicio).peak.date;
+  const inicio = A4.MakeTime(new Date(data.getTime() - 2 * UM_DIA));
+  const pico = fase === "nova" ? A4.SearchGlobalSolarEclipse(inicio).peak.date : A4.SearchLunarEclipse(inicio).peak.date;
   return Math.abs(pico.getTime() - data.getTime()) < UM_DIA;
+}
+function instanteDaLunacao(perto, fase) {
+  const alvo = fase === "nova" ? 0 : 180;
+  const desvio = (t) => {
+    const tempo = A4.MakeTime(new Date(t));
+    const d = longitudeEcliptica(A4.Body.Moon, tempo) - longitudeEcliptica(A4.Body.Sun, tempo) - alvo;
+    return (d % 360 + 540) % 360 - 180;
+  };
+  let a = perto.getTime() - 20 * 6e4, b = perto.getTime() + 20 * 6e4;
+  if (desvio(a) > 0 || desvio(b) < 0) return perto;
+  while (b - a > 1e3) {
+    const m = Math.trunc((a + b) / 2);
+    if (desvio(m) < 0) a = m;
+    else b = m;
+  }
+  return new Date(Math.trunc((a + b) / 2));
 }
 function proximasLunacoes(quantas = 6, desde = /* @__PURE__ */ new Date()) {
   const lista = [];
-  let quarto = A3.SearchMoonQuarter(A3.MakeTime(desde));
+  let quarto = A4.SearchMoonQuarter(A4.MakeTime(desde));
   while (lista.length < quantas) {
     if (quarto.quarter === 0 || quarto.quarter === 2) {
       const fase = quarto.quarter === 0 ? "nova" : "cheia";
-      const data = quarto.time.date;
+      const data = instanteDaLunacao(quarto.time.date, fase);
       lista.push({
         fase,
         quando: data.toISOString(),
-        signo: posicaoNoSigno(longitudeEcliptica(A3.Body.Moon, quarto.time)).signo,
+        signo: posicaoNoSigno(longitudeEcliptica(A4.Body.Moon, A4.MakeTime(data))).signo,
         eclipse: haEclipse(fase, data)
       });
     }
-    quarto = A3.NextMoonQuarter(quarto);
+    quarto = A4.NextMoonQuarter(quarto);
   }
   return lista;
 }
@@ -658,7 +854,7 @@ var ceu = (d) => ceuNoInstante(d, SEM_LUGAR, false);
 var ANGULOS_MAIORES = [0, 60, 90, 120, 180];
 var ANGULOS_NOS_DOIS_SENTIDOS = [0, 60, 90, 120, 180, -60, -90, -120];
 var desvioAssinado = (lon, lonAlvo, angulo) => ((lon - lonAlvo - angulo) % 360 + 540) % 360 - 180;
-function refinarInstante(a, b, f, passoMs = 6e4) {
+function refinarInstante(a, b, f, passoMs = 1e3) {
   let ta = a.getTime();
   let tb = b.getTime();
   let fa = f(new Date(ta));
@@ -670,7 +866,7 @@ function refinarInstante(a, b, f, passoMs = 6e4) {
       fa = fm;
     } else tb = tm;
   }
-  return new Date(tb);
+  return new Date(Math.trunc((ta + tb) / 2));
 }
 function amostrasDoCeu(de, ate, corpos, passoMs = DIA) {
   const amostras = [];
@@ -8428,7 +8624,9 @@ var ABUNDANTIA = {
   ceuNoInstante,
   ceuProgredido,
   cuspidesTopocentricas,
+  deltaT,
   distanciaAngular,
+  efemeridesCobrem,
   estaRetrogrado,
   estacoesDosPlanetas,
   faseDaLua,
@@ -8438,6 +8636,7 @@ var ABUNDANTIA = {
   fusoParaGravar,
   haEclipse,
   idadeNaData,
+  instalarEfemerides,
   instanteDoMapa,
   instanteDoNascimento,
   instanteNaZona,
@@ -8458,9 +8657,11 @@ var ABUNDANTIA = {
   pontoDaTabela,
   pontosTocados,
   posicaoNoSigno,
+  precisaoDoMotor,
   profeccaoAnual,
   proximasLunacoes,
   refinarInstante,
+  removerEfemerides,
   retornoSolar,
   tinhaHorarioDeVerao,
   transitosSobrePontos,

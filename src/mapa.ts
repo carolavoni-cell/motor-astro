@@ -62,7 +62,7 @@ export type DadosDoNascimento = {
 // 2: oposição aos ângulos até 5° e menor orbe quando um dos lados é ângulo (2026-10-02).
 // 3: fuso e horário de verão pela base IANA; a regra fixa antiga errava muitas datas (2026-10-16).
 // 4: minutos das posições cortados, sem arredondar (evita "30°00'") (2026-10-17).
-export const VERSAO_DO_MAPA = 4;
+export const VERSAO_DO_MAPA = 5;
 
 export const GLIFOS_DOS_PONTOS: Record<string, string> = {
   ...Object.fromEntries(CORPOS.map((c) => [c.nome, c.glifo])),

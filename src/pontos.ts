@@ -1,5 +1,7 @@
 import * as A from "astronomy-engine";
 import { GRAUS, norm360 } from "./base";
+import "./deltat";
+import { direcaoAparente, efemeridesCobrem, estadoGeocentricoDaLua, nutacaoQueFalta } from "./efemerides/jpl";
 
 /**
  * Posições dos pontos do mapa, sempre no zodíaco DA DATA (ECT), que é o
@@ -19,7 +21,19 @@ export const CORPOS: { nome: string; corpo: A.Body; glifo: string }[] = [
   { nome: "Plutão", corpo: A.Body.Pluto, glifo: "♇" },
 ];
 
+const NOME_NAS_TABELAS = new Map<A.Body, string>([
+  [A.Body.Sun, "Sol"], [A.Body.Moon, "Lua"], [A.Body.Mercury, "Mercúrio"], [A.Body.Venus, "Vênus"], [A.Body.Mars, "Marte"],
+  [A.Body.Jupiter, "Júpiter"], [A.Body.Saturn, "Saturno"], [A.Body.Uranus, "Urano"], [A.Body.Neptune, "Netuno"], [A.Body.Pluto, "Plutão"],
+]);
+
 export function longitudeEcliptica(corpo: A.Body, tempo: A.AstroTime): number {
+  // Com as tabelas da NASA carregadas ("motor-astro/completo"), a posição sai delas: precisão de Swiss Ephemeris.
+  const nome = NOME_NAS_TABELAS.get(corpo);
+  if (nome && efemeridesCobrem(tempo.tt)) {
+    const [x, y, z] = direcaoAparente(nome, tempo.tt);
+    const daData = A.RotateVector(A.Rotation_EQJ_ECT(tempo), new A.Vector(x, y, z, tempo));
+    return norm360(Math.atan2(daData.y, daData.x) / GRAUS + nutacaoQueFalta(tempo.tt));
+  }
   if (corpo === A.Body.Moon) return norm360(A.EclipticGeoMoon(tempo).lon);
   const vetor = A.GeoVector(corpo, tempo, true);
   const daData = A.RotateVector(A.Rotation_EQJ_ECT(tempo), vetor);
@@ -46,6 +60,14 @@ function vetorLuaDaData(tempo: A.AstroTime): A.Vector {
  * a eclíptica neste instante. Vem do movimento real da Lua, não de média.
  */
 export function nodoNorteVerdadeiro(tempo: A.AstroTime): number {
+  if (efemeridesCobrem(tempo.tt)) {
+    // Com as tabelas da NASA: posição e velocidade exatas da Lua, sem diferença numérica.
+    const e = estadoGeocentricoDaLua(tempo.tt);
+    const rot = A.Rotation_EQJ_ECT(tempo);
+    const r = A.RotateVector(rot, new A.Vector(e[0], e[1], e[2], tempo));
+    const w = A.RotateVector(rot, new A.Vector(e[3], e[4], e[5], tempo));
+    return norm360(Math.atan2(r.y * w.z - r.z * w.y, -(r.z * w.x - r.x * w.z)) / GRAUS + nutacaoQueFalta(tempo.tt));
+  }
   const passo = 0.02; // dias
   const antes = vetorLuaDaData(tempo.AddDays(-passo / 2));
   const depois = vetorLuaDaData(tempo.AddDays(passo / 2));
@@ -87,8 +109,10 @@ export function parteDaFortuna(asc: number, sol: number, lua: number, deDia: boo
 /** Um planeta está retrógrado quando a longitude anda para trás. */
 export function estaRetrogrado(corpo: A.Body, tempo: A.AstroTime): boolean {
   if (corpo === A.Body.Sun || corpo === A.Body.Moon) return false;
-  const antes = longitudeEcliptica(corpo, tempo.AddDays(-0.5));
-  const depois = longitudeEcliptica(corpo, tempo.AddDays(0.5));
+  // Sentido do movimento neste instante: diferença em 3 minutos para cada lado. Até a versão 1.1.0 era meio dia para
+  // cada lado, o que deslocava a hora da estação (o planeta já tinha virado e a média do dia ainda não).
+  const antes = longitudeEcliptica(corpo, tempo.AddDays(-0.002));
+  const depois = longitudeEcliptica(corpo, tempo.AddDays(0.002));
   let avanco = depois - antes;
   if (avanco > 180) avanco -= 360;
   if (avanco < -180) avanco += 360;
